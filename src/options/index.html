@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QA Assistant — הגדרות</title>
+    <link rel="stylesheet" href="./options.css" />
+  </head>
+  <body>
+    <main>
+      <h1>QA Assistant — הגדרות</h1>
+
+      <section>
+        <label for="secret">API Secret</label>
+        <p class="hint">
+          ה-secret נשלח כ-<code>Authorization: Bearer &lt;secret&gt;</code> לכל
+          ה-endpoints. נשמר מקומית ב-<code>chrome.storage.local</code> בלבד.
+        </p>
+        <div class="row">
+          <input id="secret" type="password" placeholder="הדבק secret…" autocomplete="off" />
+          <button id="toggle" type="button" title="הצג/הסתר">👁</button>
+        </div>
+        <button id="save" class="primary" type="button">שמור</button>
+        <div id="status" class="status hidden"></div>
+      </section>
+    </main>
+    <script type="module" src="./options.ts"></script>
+  </body>
+</html>

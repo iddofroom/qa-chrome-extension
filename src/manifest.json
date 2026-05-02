@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "QA Assistant",
+  "version": "0.1.0",
+  "description": "Personal QA assistant — sends prompts + page context (URL, screenshot, console) to per-project Claude endpoints.",
+  "default_locale": "en",
+  "action": {
+    "default_popup": "src/popup/index.html",
+    "default_title": "QA Assistant"
+  },
+  "options_page": "src/options/index.html",
+  "background": {
+    "service_worker": "src/background/index.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://iddofroom.co.il/*",
+        "https://www.bakbookim.co.il/*",
+        "https://mm-clean.co.il/*",
+        "https://alon-ice.netlify.app/*",
+        "https://kibbuz-gallery.co.il/*",
+        "https://meeting-copilot-13941.netlify.app/*",
+        "https://rotembonder.netlify.app/*",
+        "https://solbot.co.il/*",
+        "https://iddofroom-todo-list.netlify.app/*",
+        "https://tripbudget.netlify.app/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*"
+      ],
+      "js": ["src/content/console-capture.ts"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    }
+  ],
+  "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "host_permissions": [
+    "https://iddofroom.co.il/*",
+    "https://www.bakbookim.co.il/*",
+    "https://mm-clean.co.il/*",
+    "https://alon-ice.netlify.app/*",
+    "https://kibbuz-gallery.co.il/*",
+    "https://meeting-copilot-13941.netlify.app/*",
+    "https://rotembonder.netlify.app/*",
+    "https://solbot.co.il/*",
+    "https://iddofroom-todo-list.netlify.app/*",
+    "https://tripbudget.netlify.app/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ]
+}

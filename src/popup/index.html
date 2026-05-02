@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QA Assistant</title>
+    <link rel="stylesheet" href="./popup.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="header">
+        <div class="title">QA Assistant</div>
+        <button id="open-options" class="link-btn" title="הגדרות">הגדרות</button>
+      </header>
+
+      <section class="project-row">
+        <span class="label">פרוייקט:</span>
+        <span id="project-badge" class="badge badge-loading">טוען…</span>
+        <select id="project-select" class="project-select hidden"></select>
+      </section>
+
+      <textarea
+        id="prompt"
+        placeholder="כתוב פרומט…"
+        rows="5"
+        autofocus
+      ></textarea>
+
+      <fieldset class="checkboxes">
+        <legend>צרף לבקשה:</legend>
+        <label><input type="checkbox" id="cb-screenshot" /> צילום מסך</label>
+        <label><input type="checkbox" id="cb-url" /> כתובת URL</label>
+        <label><input type="checkbox" id="cb-console" /> Console log</label>
+      </fieldset>
+
+      <button id="send" class="primary-btn">שלח</button>
+
+      <div id="status" class="status hidden"></div>
+      <div id="error" class="error hidden"></div>
+      <div id="response" class="response hidden"></div>
+    </div>
+    <script type="module" src="./popup.ts"></script>
+  </body>
+</html>
