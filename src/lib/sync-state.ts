@@ -31,6 +31,21 @@ export function projectOriginPatterns(projects: QaProject[]): string[] {
   return [...set];
 }
 
+// Origins that Chrome considers "required" because they're declared
+// statically in the manifest (host_permissions or content_scripts.matches).
+// chrome.permissions.remove rejects with "You cannot remove required
+// permissions" if any of these is in its argument, so we filter them out
+// of the prune set.
+function manifestRequiredOrigins(): Set<string> {
+  const m = chrome.runtime.getManifest();
+  const set = new Set<string>();
+  for (const h of (m.host_permissions ?? []) as string[]) set.add(h);
+  for (const cs of (m.content_scripts ?? []) as Array<{ matches?: string[] }>) {
+    for (const match of cs.matches ?? []) set.add(match);
+  }
+  return set;
+}
+
 // Request newly-needed origins from the user (must be inside a user gesture
 // like a click handler) and revoke any origin we no longer need. Throws if
 // the user declines.
@@ -39,10 +54,13 @@ export async function requestAndPrunePermissions(
 ): Promise<{ requested: string[]; removed: string[] }> {
   const current = await chrome.permissions.getAll();
   const granted = new Set(current.origins ?? []);
+  const required = manifestRequiredOrigins();
 
   const desiredSet = new Set(desired);
   const toRequest = desired.filter((o) => !granted.has(o));
-  const toRemove = [...granted].filter((o) => !desiredSet.has(o));
+  const toRemove = [...granted].filter(
+    (o) => !desiredSet.has(o) && !required.has(o),
+  );
 
   if (toRequest.length > 0) {
     const ok = await chrome.permissions.request({ origins: toRequest });
@@ -55,7 +73,14 @@ export async function requestAndPrunePermissions(
     }
   }
   if (toRemove.length > 0) {
-    await chrome.permissions.remove({ origins: toRemove });
+    try {
+      await chrome.permissions.remove({ origins: toRemove });
+    } catch (err) {
+      // If a particular origin can't be removed (Chrome treats it as
+      // required for some reason), log and continue — we've still saved
+      // settings and granted the new ones.
+      console.warn('[qa] permissions.remove partial failure', err, toRemove);
+    }
   }
   return { requested: toRequest, removed: toRemove };
 }
