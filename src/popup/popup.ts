@@ -79,21 +79,50 @@ async function populateProjectUi(els: Els) {
     return;
   }
 
-  const detected = currentTabUrl
-    ? projects.find((p) => matchUrl(p.origin, currentTabUrl!)) ?? null
-    : null;
+  // Tooltip on the badge shows what URL we're matching against — helps the
+  // user spot pattern typos without opening DevTools on the popup.
+  if (currentTabUrl) els.badge.title = currentTabUrl;
+
+  const detected = pickBestMatch(projects, currentTabUrl);
 
   if (detected) {
     currentProject = detected;
     els.badge.textContent = detected.label || detected.origin;
     els.badge.className = 'badge badge-ok';
+    // Still expose the dropdown so the user can override the auto-detection
+    // (e.g. they want to file the report against a different project than
+    // the page they're currently on).
+    renderProjectSelector(els, detected);
     return;
   }
 
-  // No project for this tab — let the user pick manually.
+  // No project matched the current URL — let the user pick manually.
   renderProjectSelector(els, null);
-  els.badge.textContent = 'לא מזוהה — בחר:';
+  els.badge.textContent = currentTabUrl
+    ? 'לא מזוהה — בחר:'
+    : 'אין URL — בחר:';
   els.badge.className = 'badge badge-warn';
+}
+
+// Match every project against the URL, then prefer the most specific one.
+// "Specific" = longest origin pattern after stripping the trailing `/*`,
+// which puts `https://app.example.com/admin/*` ahead of `https://*/*`.
+function pickBestMatch(
+  list: QaProject[],
+  url: string | undefined,
+): QaProject | null {
+  if (!url) return null;
+  const candidates = list.filter((p) => matchUrl(p.origin, url));
+  if (candidates.length === 0) return null;
+  candidates.sort((a, b) => specificity(b.origin) - specificity(a.origin));
+  return candidates[0];
+}
+
+function specificity(pattern: string): number {
+  if (pattern === '<all_urls>') return 0;
+  // Penalize wildcards heavily; reward concrete characters.
+  const wildcards = (pattern.match(/\*/g) ?? []).length;
+  return pattern.length - wildcards * 8;
 }
 
 function renderProjectSelector(els: Els, preselect: QaProject | null) {
