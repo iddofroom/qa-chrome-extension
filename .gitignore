@@ -4,4 +4,9 @@ dist/
 *.log
 .env
 .env.local
+.env*.local
 .vite/
+.vscode/
+.idea/
+*.pem
+*.key
