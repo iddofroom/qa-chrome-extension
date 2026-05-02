@@ -8,6 +8,7 @@ import {
 
 const STORAGE_LAST_LOCAL_PROJECT = 'qa.lastLocalProjectId';
 const STORAGE_API_SECRET = 'qa.apiSecret';
+const STORAGE_ENDPOINT_URL = 'qa.endpointUrl';
 
 interface Els {
   badge: HTMLSpanElement;
@@ -23,6 +24,11 @@ interface Els {
   optionsBtn: HTMLButtonElement;
 }
 
+// When the user filled "Endpoint URL" in the options page, we send every
+// request there and skip the per-domain project map entirely — that's the
+// path OSS users take. Empty value => fall back to the hard-coded PROJECTS
+// list and auto-detect by tab hostname.
+let configuredEndpoint: string | null = null;
 let currentProject: ProjectConfig | null = null;
 let currentTabUrl: string | undefined;
 
@@ -76,6 +82,16 @@ async function populateProjectUi(els: Els) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   currentTabUrl = tab?.url;
 
+  const stored = await chrome.storage.local.get(STORAGE_ENDPOINT_URL);
+  const overrideUrl = (stored[STORAGE_ENDPOINT_URL] as string | undefined)?.trim();
+  if (overrideUrl) {
+    configuredEndpoint = overrideUrl;
+    els.badge.textContent = `→ ${hostnameOrUrl(overrideUrl)}`;
+    els.badge.className = 'badge badge-ok';
+    els.badge.title = overrideUrl;
+    return;
+  }
+
   const detected = projectFromUrl(currentTabUrl);
   if (detected) {
     currentProject = detected;
@@ -93,6 +109,14 @@ async function populateProjectUi(els: Els) {
   renderProjectSelector(els, null);
   els.badge.textContent = 'לא מזוהה — בחר:';
   els.badge.className = 'badge badge-warn';
+}
+
+function hostnameOrUrl(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
 }
 
 async function renderLocalhostSelector(els: Els) {
@@ -142,8 +166,9 @@ async function handleSend(els: Els) {
     return;
   }
 
-  if (!currentProject) {
-    showError(els, 'יש לבחור פרוייקט.');
+  const endpoint = configuredEndpoint ?? currentProject?.endpoint ?? null;
+  if (!endpoint) {
+    showError(els, 'יש לבחור פרוייקט (או להגדיר Endpoint URL ב"הגדרות").');
     return;
   }
 
@@ -174,7 +199,7 @@ async function handleSend(els: Els) {
 
     const apiRes = await chrome.runtime.sendMessage({
       type: 'SEND_TO_API',
-      endpoint: currentProject.endpoint,
+      endpoint,
       secret,
       body: {
         prompt,

@@ -29,7 +29,9 @@ npm run build      # יוצר dist/
 3. הפעל **Developer mode** (פינה ימנית עליונה)
 4. **Load unpacked** → בחר את התיקייה `dist/`
 5. צמוד את התוסף לסרגל (אייקון פאזל → סיכה ליד QA Assistant)
-6. **חשוב**: לחץ על "הגדרות" בפופאפ והגדר API secret (משותף לכל הפרוייקטים)
+6. **חשוב**: לחץ על "הגדרות" בפופאפ והגדר:
+   - **Endpoint URL** — ה-`POST` יישלח לכתובת הזו. ריק = להשתמש ברשימה ההטמעה ב-`src/config/projects.ts`.
+   - **API Secret** — נשלח כ-`Authorization: Bearer <secret>`.
 
 ## שימוש
 
@@ -68,9 +70,16 @@ Content-Type: application/json
 
 ## הוספת פרוייקט חדש
 
+יש שתי דרכים:
+
+**א. דרך הגדרות (פשוט, מומלץ למשתמש יחיד):** פתח את עמוד ההגדרות, מלא את ה-Endpoint URL וה-API Secret. כל בקשה תישלח לכתובת הזו, בלי קשר לדומיין של הטאב הפעיל.
+
+**ב. בקוד (Iddo, multi-project):**
 1. ערוך [src/config/projects.ts](src/config/projects.ts) — הוסף ערך עם `hostname` ו-`endpoint`
 2. ערוך [src/manifest.json](src/manifest.json) — הוסף את ה-host ל-`content_scripts.matches` ו-`host_permissions`
 3. `npm run build`, ולחץ על "Reload" באייקון של התוסף ב-`chrome://extensions`
+
+> בכל מקרה, אם ה-Endpoint URL מהגדרות לא־ריק — הוא גובר על הזיהוי האוטומטי לפי דומיין.
 
 ## Branch workflow
 

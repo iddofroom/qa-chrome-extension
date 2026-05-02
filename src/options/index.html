@@ -11,6 +11,18 @@
       <h1>QA Assistant — הגדרות</h1>
 
       <section>
+        <label for="endpoint">Endpoint URL</label>
+        <p class="hint">
+          ה-URL שאליו ה-תוסף שולח <code>POST</code> עם הפרומט וההקשר.
+          אם נשאר ריק, התוסף משתמש ברשימת הפרוייקטים שהוטמעה בקוד
+          (<code>src/config/projects.ts</code>) לפי הדומיין של הטאב.
+        </p>
+        <div class="row">
+          <input id="endpoint" type="url" placeholder="https://your-site.com/api/qa-assistant" autocomplete="off" dir="ltr" />
+        </div>
+      </section>
+
+      <section>
         <label for="secret">API Secret</label>
         <p class="hint">
           ה-secret נשלח כ-<code>Authorization: Bearer &lt;secret&gt;</code> לכל
@@ -20,9 +32,10 @@
           <input id="secret" type="password" placeholder="הדבק secret…" autocomplete="off" />
           <button id="toggle" type="button" title="הצג/הסתר">👁</button>
         </div>
-        <button id="save" class="primary" type="button">שמור</button>
-        <div id="status" class="status hidden"></div>
       </section>
+
+      <button id="save" class="primary" type="button">שמור</button>
+      <div id="status" class="status hidden"></div>
     </main>
     <script type="module" src="./options.ts"></script>
   </body>
