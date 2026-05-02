@@ -3,7 +3,6 @@
   "name": "QA Assistant",
   "version": "0.1.0",
   "description": "Personal QA assistant — sends prompts + page context (URL, screenshot, console) to per-project Claude endpoints.",
-  "default_locale": "en",
   "action": {
     "default_popup": "src/popup/index.html",
     "default_title": "QA Assistant"
