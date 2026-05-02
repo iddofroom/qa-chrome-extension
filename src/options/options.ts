@@ -1,6 +1,7 @@
 import {
   isAllowedEndpoint,
   isValidMatchPattern,
+  normalizePattern,
 } from '../lib/match-pattern';
 import {
   projectOriginPatterns,
@@ -136,7 +137,7 @@ function rowToProject(r: RowEls): QaProject {
   return {
     id: r.row.dataset.id || crypto.randomUUID(),
     label: r.label.value.trim(),
-    origin: r.origin.value.trim(),
+    origin: normalizePattern(r.origin.value),
     endpoint: r.endpoint.value.trim(),
   };
 }

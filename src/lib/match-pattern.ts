@@ -6,9 +6,35 @@
 //   <scheme>://<host>/<path> — scheme is http|https|*; host can be exact,
 //   *.example.com, or *; path starts with / and may contain wildcards.
 
+// Make a user-typed pattern strictly conform to Chrome's match-pattern spec.
+// "https://example.com"   → "https://example.com/*"
+// "https://example.com/"  → "https://example.com/*"
+// "https://example.com/admin/" → "https://example.com/admin/*"
+// "https://example.com/*" → unchanged.
+// We're forgiving about a missing `/*` at the end because most users (and
+// most URL fields) don't think to add it; without it the regex below would
+// only match the bare root URL.
+export function normalizePattern(pattern: string): string {
+  const trimmed = pattern.trim();
+  if (trimmed === '<all_urls>') return trimmed;
+  const sepIdx = trimmed.indexOf('://');
+  if (sepIdx === -1) return trimmed;
+  const scheme = trimmed.slice(0, sepIdx);
+  const rest = trimmed.slice(sepIdx + 3);
+  if (!rest) return trimmed;
+  const slashIdx = rest.indexOf('/');
+  if (slashIdx === -1) return `${scheme}://${rest}/*`;
+  const host = rest.slice(0, slashIdx);
+  let path = rest.slice(slashIdx);
+  if (path === '/') path = '/*';
+  else if (path.endsWith('/')) path = `${path}*`;
+  return `${scheme}://${host}${path}`;
+}
+
 export function isValidMatchPattern(pattern: string): boolean {
-  if (pattern === '<all_urls>') return true;
-  const m = /^(\*|https?):\/\/([^/]+)(\/.*)$/.exec(pattern);
+  const p = normalizePattern(pattern);
+  if (p === '<all_urls>') return true;
+  const m = /^(\*|https?):\/\/([^/]+)(\/.*)$/.exec(p);
   if (!m) return false;
   const [, , host, path] = m;
   if (host === '') return false;
@@ -17,12 +43,15 @@ export function isValidMatchPattern(pattern: string): boolean {
   return true;
 }
 
-// Build a regex that tests a URL against a match pattern.
+// Build a regex that tests a URL against a match pattern. Accepts either a
+// strictly-conforming pattern or the lenient forms normalizePattern handles
+// — so old patterns saved before normalization existed still match.
 export function matchPatternToRegex(pattern: string): RegExp {
-  if (pattern === '<all_urls>') {
+  const p = normalizePattern(pattern);
+  if (p === '<all_urls>') {
     return /^https?:\/\/.+/i;
   }
-  const m = /^(\*|https?):\/\/([^/]+)(\/.*)$/.exec(pattern);
+  const m = /^(\*|https?):\/\/([^/]+)(\/.*)$/.exec(p);
   if (!m) throw new Error(`Invalid match pattern: ${pattern}`);
   const [, scheme, host, path] = m;
 
