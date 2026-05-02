@@ -1,13 +1,13 @@
 # QA Chrome Extension
 
-תוסף Chrome אישי — שולח פרומט + הקשר של הדף (URL, צילום מסך, console log) ל-endpoint של הפרוייקט הרלוונטי.
+תוסף Chrome (MV3) שמאפשר לשלוח דיווח מהיר לכל אתר/endpoint שמקבל את הפורמט הזה — בצירוף URL, צילום מסך, ו-console log של הדף הפעיל.
 
 ## הקשר
 
-- **שימוש אישי בלבד.** לא נפרס ל-Chrome Web Store. נטען unpacked.
-- ניתוב לפי דומיין: כל אחד מהאתרים שלי מנותב ל-`/api/qa-assistant` שלו.
-- ה-endpoint עצמו (`/api/qa-assistant`) **לא חלק מהפרוייקט הזה** — מתווסף בנפרד בכל פרוייקט.
-- ה-workflow הוא dev → main: כל push שגרתי ל-`dev`, main רק לפי בקשה מפורשת.
+- שימוש אישי / הוטעאן unpacked. לא נפרס ל-Chrome Web Store.
+- כל ההגדרות חיות ב-`chrome.storage.local` של המשתמש; הקוד עצמו לא מקודד דומיינים.
+- ה-endpoint עצמו (לדוגמה `/api/qa-assistant`) הוא חלק מהאתר היעד, **לא חלק מהתוסף**.
+- ה-workflow הוא dev → main.
 
 ## דרישות
 
@@ -20,66 +20,74 @@
 ```bash
 npm install
 npm run build      # יוצר dist/
+npm run gen:icons  # מחדש אייקונים מתוך logo.png (אופציונלי)
 ```
 
-## טעינה ב-Chrome (unpacked)
+## התקנה ב-Chrome (unpacked)
 
-1. הרץ `npm run build`
-2. פתח `chrome://extensions`
-3. הפעל **Developer mode** (פינה ימנית עליונה)
-4. **Load unpacked** → בחר את התיקייה `dist/`
-5. צמוד את התוסף לסרגל (אייקון פאזל → סיכה ליד QA Assistant)
-6. **חשוב**: לחץ על "הגדרות" בפופאפ והגדר:
-   - **Endpoint URL** — ה-`POST` יישלח לכתובת הזו. ריק = להשתמש ברשימה ההטמעה ב-`src/config/projects.ts`.
-   - **API Secret** — נשלח כ-`Authorization: Bearer <secret>`.
+1. `npm run build`
+2. `chrome://extensions` → הפעל **Developer mode**
+3. **Load unpacked** → בחר את התיקייה `dist/`
+4. צמוד את התוסף לסרגל (אייקון פאזל → סיכה ליד QA Assistant)
+5. לחץ "הגדרות" וקנפג (ראה הסעיף הבא)
 
-## שימוש
+## הגדרות ראשוניות
 
-1. גלוש לאתר הרלוונטי
-2. לחץ על האייקון של התוסף
-3. הבאדג' למעלה יראה את הפרוייקט שזוהה (אם לא — יופיע dropdown לבחירה)
-4. כתוב פרומט, סמן מה לצרף (URL / צילום / console), לחץ **שלח**
+בעמוד ההגדרות יש שני חלקים:
 
-## Localhost
+### API Secret
+נשלח כ-`Authorization: Bearer <secret>` לכל הבקשות. הסיקרט נשמר רק ב-`chrome.storage.local` של הדפדפן שלך.
 
-אם ה-URL הנוכחי הוא `localhost`/`127.0.0.1`, יופיע dropdown ידני לבחירת פרוייקט. הבחירה האחרונה נשמרת.
+### פרוייקטים (טבלה)
+לכל אתר שאתה רוצה לדווח עליו ממנו:
 
-## מגבלות ידועות
+| שדה | דוגמה | למה זה משמש |
+|---|---|---|
+| תווית | `iddofroom` | רק לתצוגה ב-popup |
+| Origin pattern | `https://iddofroom.co.il/*` | Chrome match pattern. לפיו מזוהה הטאב הפעיל אוטומטית, ועליו מותקן content script שלוכד `console.*` |
+| Endpoint URL | `https://iddofroom.co.il/api/qa-assistant` | חייב להיות `https://`, חוץ מ-`http://localhost`/`127.0.0.1` (לפיתוח) |
 
-- **Console log תופס רק logs מהרגע שהדף נטען עם התוסף פעיל.** אם הדף היה פתוח לפני התקנה/רענון של התוסף — צריך לרענן את הדף לפני שלחיצה על "Console log" תיתן משהו.
-- **צילום מסך = החלק הנראה בלבד** (`chrome.tabs.captureVisibleTab`), לא דף שלם.
-- אין rendering של Markdown — תשובה כטקסט פשוט בלבד.
-- אין היסטוריה — single-shot בכל לחיצה.
+לאחר "שמור" הדפדפן יבקש הרשאה לכל origin חדש בטבלה. הרשאות שכבר לא נדרשות (מחקת שורה) מוסרות אוטומטית.
 
-## פורמט בקשה
+## שימוש שוטף
+
+1. גלוש לאתר שמוגדר אצלך כפרוייקט
+2. לחץ על אייקון התוסף
+3. הבאדג' למעלה יראה את הפרוייקט שזוהה לפי הדומיין; אם הטאב לא תואם לאף Origin pattern, יופיע dropdown לבחירה ידנית
+4. כתוב פרומט, סמן מה לצרף, **שלח**
+
+## פורמט הבקשה
 
 ```
-POST <project-endpoint>
+POST <project endpoint>
 Authorization: Bearer <secret>
 Content-Type: application/json
 
 {
-  "prompt": "string",
-  "url": "string | null",
+  "prompt":     "string",
+  "url":        "string | null",
   "screenshot": "base64 PNG (data: URL) | null",
   "consoleLog": "string | null"
 }
 ```
 
-תשובה צפויה: `{ "response": "string" }`
+תשובה צפויה (מה ש-popup יראה למשתמש): `{ "response": "string" }`.
 
-## הוספת פרוייקט חדש
+## ארכיטקטורת אבטחה
 
-יש שתי דרכים:
+- **`optional_host_permissions: ["<all_urls>"]`** — אין הרשאות host סטטיות בהתקנה. לכל פרוייקט המשתמש מאשר את ה-origin בנפרד דרך `chrome.permissions.request` בעת השמירה.
+- **content scripts דינמיים** — `chrome.scripting.registerContentScripts` רושם את `console-capture` רק על origins שאושרו. בהתקנה אין content script שרץ על אף דף.
+- **HTTPS-only** — שדה Endpoint URL מקבל רק `https://` (חוץ מ-`http://localhost`). הולידציה רצה גם ב-options וגם ב-background לפני ה-fetch.
+- **sender validation** — `chrome.runtime.onMessage` בבקגראונד דוחה כל הודעה שלא מגיעה מ-popup או options של התוסף עצמו (חוסם משתלט-בדף שמנסה לזרוק את הסיקרט החוצה).
+- **secret storage** — `chrome.storage.local` בלבד. רק התוסף שלך יכול לקרוא אותו; לא נשלח לאף URL חוץ מה-endpoint שהוגדר.
+- **buffer scope** — buffer ה-console חי על `window.__qaConsoleBuffer` בעולם MAIN; הוא חשוף לדף עצמו (כמו ש-console.log שלו חשוף לעצמו), אבל לא חוצה origins.
 
-**א. דרך הגדרות (פשוט, מומלץ למשתמש יחיד):** פתח את עמוד ההגדרות, מלא את ה-Endpoint URL וה-API Secret. כל בקשה תישלח לכתובת הזו, בלי קשר לדומיין של הטאב הפעיל.
+## מגבלות ידועות
 
-**ב. בקוד (Iddo, multi-project):**
-1. ערוך [src/config/projects.ts](src/config/projects.ts) — הוסף ערך עם `hostname` ו-`endpoint`
-2. ערוך [src/manifest.json](src/manifest.json) — הוסף את ה-host ל-`content_scripts.matches` ו-`host_permissions`
-3. `npm run build`, ולחץ על "Reload" באייקון של התוסף ב-`chrome://extensions`
-
-> בכל מקרה, אם ה-Endpoint URL מהגדרות לא־ריק — הוא גובר על הזיהוי האוטומטי לפי דומיין.
+- **Console log תופס רק logs מהרגע שה-content script נרשם על ה-origin.** אם הדף היה פתוח לפני שאישרת הרשאה — רענן.
+- **צילום מסך = חלק נראה בלבד** (`chrome.tabs.captureVisibleTab`).
+- אין rendering של Markdown.
+- אין היסטוריה — single-shot בכל לחיצה.
 
 ## Branch workflow
 

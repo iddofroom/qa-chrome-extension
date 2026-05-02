@@ -11,31 +11,46 @@
       <h1>QA Assistant — הגדרות</h1>
 
       <section>
-        <label for="endpoint">Endpoint URL</label>
+        <h2>API Secret</h2>
         <p class="hint">
-          ה-URL שאליו ה-תוסף שולח <code>POST</code> עם הפרומט וההקשר.
-          אם נשאר ריק, התוסף משתמש ברשימת הפרוייקטים שהוטמעה בקוד
-          (<code>src/config/projects.ts</code>) לפי הדומיין של הטאב.
+          נשלח כ-<code>Authorization: Bearer &lt;secret&gt;</code> לכל ה-endpoints.
+          נשמר רק ב-<code>chrome.storage.local</code> שלך.
         </p>
         <div class="row">
-          <input id="endpoint" type="url" placeholder="https://your-site.com/api/qa-assistant" autocomplete="off" dir="ltr" />
+          <input id="secret" type="password" placeholder="הדבק secret…" autocomplete="off" />
+          <button id="toggle-secret" type="button" title="הצג/הסתר">👁</button>
         </div>
       </section>
 
       <section>
-        <label for="secret">API Secret</label>
+        <h2>פרוייקטים</h2>
         <p class="hint">
-          ה-secret נשלח כ-<code>Authorization: Bearer &lt;secret&gt;</code> לכל
-          ה-endpoints. נשמר מקומית ב-<code>chrome.storage.local</code> בלבד.
+          לכל פרוייקט: <strong>תווית</strong> (לזיהוי), <strong>Origin</strong>
+          (Chrome match pattern של האתר שאתה בודק — למשל
+          <code dir="ltr">https://example.com/*</code>), ו-<strong>Endpoint URL</strong>
+          (איפה לשלוח את הבקשה — חייב להיות <code>https://</code>, חוץ מ-localhost).
+          בעת השמירה הדפדפן יבקש הרשאה לכל origin חדש; הרשאות שלא בשימוש יוסרו.
         </p>
-        <div class="row">
-          <input id="secret" type="password" placeholder="הדבק secret…" autocomplete="off" />
-          <button id="toggle" type="button" title="הצג/הסתר">👁</button>
+        <div class="table-wrap">
+          <table id="projects-table">
+            <thead>
+              <tr>
+                <th>תווית</th>
+                <th>Origin pattern</th>
+                <th>Endpoint URL</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="projects-tbody"></tbody>
+          </table>
         </div>
+        <button id="add-row" type="button" class="ghost-btn">+ הוסף שורה</button>
       </section>
 
-      <button id="save" class="primary" type="button">שמור</button>
-      <div id="status" class="status hidden"></div>
+      <div class="footer">
+        <button id="save" class="primary" type="button">שמור והפעל הרשאות</button>
+        <div id="status" class="status hidden"></div>
+      </div>
     </main>
     <script type="module" src="./options.ts"></script>
   </body>

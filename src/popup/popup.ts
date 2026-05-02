@@ -1,14 +1,9 @@
+import { matchUrl } from '../lib/match-pattern';
 import {
-  PROJECTS,
-  projectFromUrl,
-  isLocalhost,
-  getProjectById,
-  type ProjectConfig,
-} from '../config/projects';
-
-const STORAGE_LAST_LOCAL_PROJECT = 'qa.lastLocalProjectId';
-const STORAGE_API_SECRET = 'qa.apiSecret';
-const STORAGE_ENDPOINT_URL = 'qa.endpointUrl';
+  getApiSecret,
+  getProjects,
+  type QaProject,
+} from '../lib/storage';
 
 interface Els {
   badge: HTMLSpanElement;
@@ -24,12 +19,8 @@ interface Els {
   optionsBtn: HTMLButtonElement;
 }
 
-// When the user filled "Endpoint URL" in the options page, we send every
-// request there and skip the per-domain project map entirely — that's the
-// path OSS users take. Empty value => fall back to the hard-coded PROJECTS
-// list and auto-detect by tab hostname.
-let configuredEndpoint: string | null = null;
-let currentProject: ProjectConfig | null = null;
+let projects: QaProject[] = [];
+let currentProject: QaProject | null = null;
 let currentTabUrl: string | undefined;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -64,12 +55,11 @@ function bindEvents(els: Els) {
   });
 
   els.select.addEventListener('change', () => {
-    const project = getProjectById(els.select.value);
+    const project = projects.find((p) => p.id === els.select.value) ?? null;
     if (project) {
       currentProject = project;
-      els.badge.textContent = project.label;
+      els.badge.textContent = project.label || project.origin;
       els.badge.className = 'badge badge-ok';
-      void chrome.storage.local.set({ [STORAGE_LAST_LOCAL_PROJECT]: project.id });
     }
   });
 
@@ -81,62 +71,32 @@ function bindEvents(els: Els) {
 async function populateProjectUi(els: Els) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   currentTabUrl = tab?.url;
+  projects = await getProjects();
 
-  const stored = await chrome.storage.local.get(STORAGE_ENDPOINT_URL);
-  const overrideUrl = (stored[STORAGE_ENDPOINT_URL] as string | undefined)?.trim();
-  if (overrideUrl) {
-    configuredEndpoint = overrideUrl;
-    els.badge.textContent = `→ ${hostnameOrUrl(overrideUrl)}`;
-    els.badge.className = 'badge badge-ok';
-    els.badge.title = overrideUrl;
+  if (projects.length === 0) {
+    els.badge.textContent = 'אין פרוייקטים — פתח "הגדרות"';
+    els.badge.className = 'badge badge-warn';
     return;
   }
 
-  const detected = projectFromUrl(currentTabUrl);
+  const detected = currentTabUrl
+    ? projects.find((p) => matchUrl(p.origin, currentTabUrl!)) ?? null
+    : null;
+
   if (detected) {
     currentProject = detected;
-    els.badge.textContent = detected.label;
+    els.badge.textContent = detected.label || detected.origin;
     els.badge.className = 'badge badge-ok';
     return;
   }
 
-  if (isLocalhost(currentTabUrl)) {
-    await renderLocalhostSelector(els);
-    return;
-  }
-
-  // Unknown domain — render selector with no preselect.
+  // No project for this tab — let the user pick manually.
   renderProjectSelector(els, null);
   els.badge.textContent = 'לא מזוהה — בחר:';
   els.badge.className = 'badge badge-warn';
 }
 
-function hostnameOrUrl(url: string): string {
-  try {
-    return new URL(url).hostname;
-  } catch {
-    return url;
-  }
-}
-
-async function renderLocalhostSelector(els: Els) {
-  const stored = await chrome.storage.local.get(STORAGE_LAST_LOCAL_PROJECT);
-  const lastId = stored[STORAGE_LAST_LOCAL_PROJECT] as string | undefined;
-  const last = getProjectById(lastId);
-
-  renderProjectSelector(els, last);
-
-  if (last) {
-    currentProject = last;
-    els.badge.textContent = `localhost → ${last.label}`;
-    els.badge.className = 'badge badge-ok';
-  } else {
-    els.badge.textContent = 'localhost — בחר פרוייקט:';
-    els.badge.className = 'badge badge-warn';
-  }
-}
-
-function renderProjectSelector(els: Els, preselect: ProjectConfig | null) {
+function renderProjectSelector(els: Els, preselect: QaProject | null) {
   els.select.innerHTML = '';
   const placeholder = document.createElement('option');
   placeholder.value = '';
@@ -145,10 +105,10 @@ function renderProjectSelector(els: Els, preselect: ProjectConfig | null) {
   placeholder.selected = !preselect;
   els.select.appendChild(placeholder);
 
-  for (const p of PROJECTS) {
+  for (const p of projects) {
     const opt = document.createElement('option');
     opt.value = p.id;
-    opt.textContent = p.label;
+    opt.textContent = p.label || p.origin;
     if (preselect && preselect.id === p.id) opt.selected = true;
     els.select.appendChild(opt);
   }
@@ -166,14 +126,12 @@ async function handleSend(els: Els) {
     return;
   }
 
-  const endpoint = configuredEndpoint ?? currentProject?.endpoint ?? null;
-  if (!endpoint) {
-    showError(els, 'יש לבחור פרוייקט (או להגדיר Endpoint URL ב"הגדרות").');
+  if (!currentProject) {
+    showError(els, 'יש לבחור פרוייקט (או להגדיר ב"הגדרות").');
     return;
   }
 
-  const secretRes = await chrome.storage.local.get(STORAGE_API_SECRET);
-  const secret = (secretRes[STORAGE_API_SECRET] as string | undefined) ?? '';
+  const secret = await getApiSecret();
   if (!secret) {
     showError(els, 'חסר API secret. לחץ "הגדרות" והגדר אותו.');
     return;
@@ -199,7 +157,7 @@ async function handleSend(els: Els) {
 
     const apiRes = await chrome.runtime.sendMessage({
       type: 'SEND_TO_API',
-      endpoint,
+      endpoint: currentProject.endpoint,
       secret,
       body: {
         prompt,

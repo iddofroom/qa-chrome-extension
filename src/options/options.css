@@ -8,7 +8,7 @@ body {
   color: #1a1a1a;
 }
 main {
-  max-width: 540px;
+  max-width: 800px;
   margin: 40px auto;
   padding: 24px;
   background: white;
@@ -19,10 +19,96 @@ h1 {
   margin: 0 0 16px;
   font-size: 18px;
 }
+h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
 section {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 16px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+section:last-of-type {
+  border-bottom: none;
+}
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+thead th {
+  text-align: right;
+  font-size: 12px;
+  font-weight: 500;
+  color: #555;
+  background: #f9fafb;
+  padding: 8px 10px;
+  border-bottom: 1px solid #e5e7eb;
+}
+tbody td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+tbody tr:last-child td {
+  border-bottom: none;
+}
+tbody td input {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 13px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-family: inherit;
+}
+tbody td input:focus {
+  border-color: #2563eb;
+  outline: none;
+}
+.col-remove {
+  width: 36px;
+  text-align: center;
+}
+.remove-btn {
+  background: transparent;
+  color: #991b1b;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+.remove-btn:hover {
+  background: #fee2e2;
+  border-radius: 4px;
+}
+.ghost-btn {
+  background: white;
+  color: #2563eb;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+.ghost-btn:hover {
+  background: #eff6ff;
+}
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+  flex-wrap: wrap;
 }
 label {
   font-weight: 500;

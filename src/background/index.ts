@@ -1,6 +1,19 @@
 // Background service worker. Handles two requests from the popup:
 //  - GET_PAGE_CONTEXT: read URL, take screenshot, pull console buffer.
 //  - SEND_TO_API: relay the request to the project's endpoint.
+//
+// Hardening:
+//  - Both message types reject senders that aren't this extension's own
+//    popup or options page (in particular: not content scripts), so a
+//    compromised page can't pivot the bearer secret out through us.
+//  - SEND_TO_API re-validates the endpoint URL is https:// (or
+//    http://localhost) defense-in-depth, even after the popup checked.
+//  - On startup/install we re-register dynamic content scripts so console
+//    capture survives browser restarts and updates without leaking to
+//    origins the user hasn't approved.
+
+import { assertAllowedEndpoint, syncContentScripts } from '../lib/sync-state';
+import { getProjects } from '../lib/storage';
 
 interface QaLogEntry {
   level: 'log' | 'info' | 'warn' | 'error';
@@ -31,7 +44,14 @@ type Msg =
       };
     };
 
-chrome.runtime.onMessage.addListener((msg: Msg, _sender, sendResponse) => {
+const EXTENSION_ORIGIN = `chrome-extension://${chrome.runtime.id}`;
+
+chrome.runtime.onMessage.addListener((msg: Msg, sender, sendResponse) => {
+  if (!isTrustedSender(sender)) {
+    sendResponse({ ok: false, error: 'Unauthorized sender' });
+    return false;
+  }
+
   if (msg.type === 'GET_PAGE_CONTEXT') {
     collectPageContext(msg.include)
       .then((ctx) => sendResponse({ ok: true, data: ctx }))
@@ -48,6 +68,20 @@ chrome.runtime.onMessage.addListener((msg: Msg, _sender, sendResponse) => {
 
   return false;
 });
+
+// We only accept messages from our own extension's popup / options pages.
+// Content scripts run inside web pages — they have a tab id and a url that
+// belongs to that page (not chrome-extension://...). Excluding them blocks
+// a compromised page from using the background as a credentialed proxy.
+function isTrustedSender(sender: chrome.runtime.MessageSender): boolean {
+  if (sender.id !== chrome.runtime.id) return false;
+  if (sender.tab) return false; // content script
+  const url = sender.url ?? '';
+  return (
+    url.startsWith(`${EXTENSION_ORIGIN}/src/popup/`) ||
+    url.startsWith(`${EXTENSION_ORIGIN}/src/options/`)
+  );
+}
 
 async function collectPageContext(include: {
   url: boolean;
@@ -115,6 +149,8 @@ async function callApi(msg: Extract<Msg, { type: 'SEND_TO_API' }>): Promise<{ re
   if (!msg.secret) {
     throw new Error('חסר API secret. פתח את הגדרות התוסף והגדר אותו.');
   }
+  assertAllowedEndpoint(msg.endpoint);
+
   let res: Response;
   try {
     res = await fetch(msg.endpoint, {
@@ -160,3 +196,18 @@ function errorMessage(err: unknown): string {
     return String(err);
   }
 }
+
+// Re-register dynamic content scripts on startup / after extension update,
+// so console capture works on all approved origins without requiring the
+// user to open options first.
+async function reregisterContentScripts() {
+  try {
+    const projects = await getProjects();
+    await syncContentScripts(projects);
+  } catch (err) {
+    console.error('[qa] failed to reregister content scripts on startup', err);
+  }
+}
+
+chrome.runtime.onStartup.addListener(() => void reregisterContentScripts());
+chrome.runtime.onInstalled.addListener(() => void reregisterContentScripts());

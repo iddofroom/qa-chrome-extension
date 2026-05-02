@@ -26,38 +26,12 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "https://iddofroom.co.il/*",
-        "https://www.bakbookim.co.il/*",
-        "https://mm-clean.co.il/*",
-        "https://alon-ice.netlify.app/*",
-        "https://kibbuz-gallery.co.il/*",
-        "https://meeting-copilot-13941.netlify.app/*",
-        "https://rotembonder.netlify.app/*",
-        "https://solbot.co.il/*",
-        "https://iddofroom-todo-list.netlify.app/*",
-        "https://tripbudget.netlify.app/*",
-        "http://localhost/*",
-        "http://127.0.0.1/*"
-      ],
+      "matches": ["https://qa-extension-bundle-only.invalid/*"],
       "js": ["src/content/console-capture.ts"],
       "run_at": "document_start",
       "world": "MAIN"
     }
   ],
   "permissions": ["activeTab", "scripting", "storage", "tabs"],
-  "host_permissions": [
-    "https://iddofroom.co.il/*",
-    "https://www.bakbookim.co.il/*",
-    "https://mm-clean.co.il/*",
-    "https://alon-ice.netlify.app/*",
-    "https://kibbuz-gallery.co.il/*",
-    "https://meeting-copilot-13941.netlify.app/*",
-    "https://rotembonder.netlify.app/*",
-    "https://solbot.co.il/*",
-    "https://iddofroom-todo-list.netlify.app/*",
-    "https://tripbudget.netlify.app/*",
-    "http://localhost/*",
-    "http://127.0.0.1/*"
-  ]
+  "optional_host_permissions": ["<all_urls>"]
 }
