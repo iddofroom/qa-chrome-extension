@@ -4,6 +4,7 @@
 
 export const STORAGE_API_SECRET = 'qa.apiSecret';
 export const STORAGE_PROJECTS = 'qa.projects';
+export const STORAGE_GITHUB_PAT = 'qa.githubPat';
 
 export interface QaProject {
   id: string;       // stable id; uuid generated client-side
@@ -31,6 +32,15 @@ export async function getApiSecret(): Promise<string> {
 
 export async function setApiSecret(secret: string): Promise<void> {
   await chrome.storage.local.set({ [STORAGE_API_SECRET]: secret });
+}
+
+export async function getGithubPat(): Promise<string> {
+  const stored = await chrome.storage.local.get(STORAGE_GITHUB_PAT);
+  return (stored[STORAGE_GITHUB_PAT] as string | undefined) ?? '';
+}
+
+export async function setGithubPat(pat: string): Promise<void> {
+  await chrome.storage.local.set({ [STORAGE_GITHUB_PAT]: pat });
 }
 
 function isValidProject(p: unknown): p is QaProject {

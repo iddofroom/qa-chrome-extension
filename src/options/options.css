@@ -144,6 +144,16 @@ tbody td input:focus {
   display: flex;
   gap: 8px;
   margin-top: 8px;
+  flex-wrap: wrap;
+}
+.github-hint {
+  margin-top: 8px;
+  font-size: 11px;
+}
+.optional-tag {
+  font-weight: 400;
+  font-size: 12px;
+  color: #6b7280;
 }
 label {
   font-weight: 500;

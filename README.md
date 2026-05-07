@@ -16,6 +16,8 @@ Open the popup → **Settings**:
 2. Add a row per site: **label**, **origin pattern** (Chrome match pattern; `https://example.com` is auto-normalized to `https://example.com/*`), **endpoint URL** (must be `https://`, except `http://localhost` for dev).
 3. Save. Chrome will ask permission for each new origin.
 
+> **Bulk add:** the **ייבוא / ייצוא JSON** panel below the table accepts a `[{label, origin, endpoint}]` array. Optionally paste a read-only **GitHub PAT** in the GitHub section and click **משוך מ-GitHub** to pre-fill the textarea from your repos (uses `repo.homepage` to derive the origin; assumes `/api/qa-assistant`).
+
 The popup auto-detects which project applies based on the active tab's URL.
 
 ## Request contract

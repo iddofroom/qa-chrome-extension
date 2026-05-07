@@ -1,4 +1,9 @@
 import {
+  GITHUB_PERMISSION_ORIGIN,
+  listUserRepos,
+  repoToProjectDraft,
+} from '../lib/github';
+import {
   isAllowedEndpoint,
   isValidMatchPattern,
   normalizePattern,
@@ -10,8 +15,10 @@ import {
 } from '../lib/sync-state';
 import {
   getApiSecret,
+  getGithubPat,
   getProjects,
   setApiSecret,
+  setGithubPat,
   setProjects,
   type QaProject,
 } from '../lib/storage';
@@ -33,14 +40,18 @@ document.addEventListener('DOMContentLoaded', () => {
 async function init() {
   const secret = document.getElementById('secret') as HTMLInputElement;
   const toggleSecret = document.getElementById('toggle-secret') as HTMLButtonElement;
+  const githubPat = document.getElementById('github-pat') as HTMLInputElement;
+  const togglePat = document.getElementById('toggle-pat') as HTMLButtonElement;
   const addRow = document.getElementById('add-row') as HTMLButtonElement;
   const save = document.getElementById('save') as HTMLButtonElement;
   const status = document.getElementById('status') as HTMLDivElement;
   const bulkJson = document.getElementById('bulk-json') as HTMLTextAreaElement;
   const bulkExport = document.getElementById('bulk-export') as HTMLButtonElement;
   const bulkImport = document.getElementById('bulk-import') as HTMLButtonElement;
+  const githubPull = document.getElementById('github-pull') as HTMLButtonElement;
 
   secret.value = await getApiSecret();
+  githubPat.value = await getGithubPat();
   const projects = await getProjects();
   const tbody = document.getElementById(tbodyId) as HTMLTableSectionElement;
   if (projects.length === 0) {
@@ -51,6 +62,10 @@ async function init() {
 
   toggleSecret.addEventListener('click', () => {
     secret.type = secret.type === 'password' ? 'text' : 'password';
+  });
+
+  togglePat.addEventListener('click', () => {
+    githubPat.type = githubPat.type === 'password' ? 'text' : 'password';
   });
 
   addRow.addEventListener('click', () => {
@@ -66,17 +81,23 @@ async function init() {
     handleBulkImport(tbody, bulkJson, status);
   });
 
+  githubPull.addEventListener('click', () => {
+    void handleGithubPull(githubPat, bulkJson, status);
+  });
+
   save.addEventListener('click', () => {
-    void handleSave(secret, tbody, status);
+    void handleSave(secret, githubPat, tbody, status);
   });
 }
 
 async function handleSave(
   secretEl: HTMLInputElement,
+  patEl: HTMLInputElement,
   tbody: HTMLTableSectionElement,
   status: HTMLDivElement,
 ) {
   const secretValue = secretEl.value.trim();
+  const patValue = patEl.value.trim();
   const rows = collectRows(tbody);
   const projects = rows.map(rowToProject);
 
@@ -113,6 +134,7 @@ async function handleSave(
 
     // 2) Persist.
     await setApiSecret(secretValue);
+    await setGithubPat(patValue);
     await setProjects(projects);
 
     // 3) Re-register content scripts now that permissions reflect the new state.
@@ -283,4 +305,62 @@ function handleBulkImport(
     ? `יובאו ${imported}; דילוג על ${errors.length}: ${errors.join(' ')}`
     : `יובאו ${imported} פרוייקטים. לחץ "שמור והפעל הרשאות" כדי לאשר.`;
   showStatus(status, summary, errors.length > 0);
+}
+
+// Pull repos from GitHub, filter to those with a homepage URL, and load
+// them into the bulk-import textarea so the user can review before
+// committing. Requires a one-time host permission on api.github.com which
+// we ask for here (inside the click handler, so Chrome accepts the gesture).
+async function handleGithubPull(
+  patEl: HTMLInputElement,
+  bulkJson: HTMLTextAreaElement,
+  status: HTMLDivElement,
+) {
+  const pat = patEl.value.trim();
+  if (!pat) {
+    showStatus(status, 'חסר GitHub PAT (מלא בשדה למעלה).', true);
+    return;
+  }
+
+  const granted = await chrome.permissions.request({
+    origins: [GITHUB_PERMISSION_ORIGIN],
+  });
+  if (!granted) {
+    showStatus(
+      status,
+      'הרשאת גישה ל-api.github.com נדחתה. בלי זה אי אפשר למשוך.',
+      true,
+    );
+    return;
+  }
+
+  showStatus(status, 'מושך מ-GitHub…', false);
+  try {
+    const repos = await listUserRepos(pat);
+    const drafts = repos
+      .map((r) => repoToProjectDraft(r, '/api/qa-assistant'))
+      .filter((d): d is NonNullable<typeof d> => d !== null);
+
+    if (drafts.length === 0) {
+      showStatus(
+        status,
+        `הובאו ${repos.length} repos, אבל אף אחד לא עם homepage תקין. ערוך את שדה homepage ב-GitHub ונסה שוב.`,
+        true,
+      );
+      return;
+    }
+
+    bulkJson.value = JSON.stringify(drafts, null, 2);
+    showStatus(
+      status,
+      `נמצאו ${drafts.length} repos עם homepage (מתוך ${repos.length}). בדוק/ערוך את התיבה ולחץ "ייבוא מהתיבה".`,
+      false,
+    );
+  } catch (err) {
+    showStatus(
+      status,
+      `כשל בקריאה ל-GitHub: ${err instanceof Error ? err.message : String(err)}`,
+      true,
+    );
+  }
 }

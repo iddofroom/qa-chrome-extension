@@ -23,6 +23,21 @@
       </section>
 
       <section>
+        <h2>GitHub PAT <span class="optional-tag">(אופציונלי — לייבוא repos)</span></h2>
+        <p class="hint">
+          טוקן <strong>read-only</strong> כדי לייבא רשימת repos שלך עם שדה
+          <code>homepage</code> מלא. fine-grained PAT עם הרשאת
+          <code>Repository → Metadata → Read</code> מספיק. הטוקן נשלח רק
+          ל-<code>api.github.com</code> ונשמר רק ב-<code>chrome.storage.local</code>.
+          אם תשאיר ריק, התכונה הזאת לא פעילה.
+        </p>
+        <div class="row">
+          <input id="github-pat" type="password" placeholder="ghp_… או github_pat_…" autocomplete="off" dir="ltr" />
+          <button id="toggle-pat" type="button" title="הצג/הסתר">👁</button>
+        </div>
+      </section>
+
+      <section>
         <h2>פרוייקטים</h2>
         <p class="hint">
           לכל פרוייקט: <strong>תווית</strong> (לזיהוי), <strong>Origin</strong>
@@ -60,7 +75,14 @@
           <div class="bulk-io-actions">
             <button id="bulk-export" type="button" class="ghost-btn">⤓ ייצוא לתיבה</button>
             <button id="bulk-import" type="button" class="ghost-btn">⤒ ייבוא מהתיבה</button>
+            <button id="github-pull" type="button" class="ghost-btn">↻ משוך מ-GitHub</button>
           </div>
+          <p class="hint github-hint">
+            "משוך מ-GitHub" קורא ל-<code dir="ltr">/user/repos</code> עם ה-PAT למעלה,
+            מסנן ל-repos עם <code>homepage</code> ממולא, ומציג אותם בתיבה. ה-endpoint
+            מוגדר אוטומטית כ-<code dir="ltr">{homepage}/api/qa-assistant</code> —
+            אם ה-path אצלך שונה, ערוך לפני "ייבוא מהתיבה".
+          </p>
         </details>
       </section>
 
