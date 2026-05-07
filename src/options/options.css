@@ -110,6 +110,41 @@ tbody td input:focus {
   border-top: 1px solid #e5e7eb;
   flex-wrap: wrap;
 }
+.bulk-io {
+  margin-top: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fafbfc;
+  padding: 8px 12px;
+}
+.bulk-io > summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  user-select: none;
+}
+.bulk-io[open] > summary {
+  margin-bottom: 8px;
+}
+.bulk-io textarea {
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  padding: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  resize: vertical;
+}
+.bulk-io textarea:focus {
+  border-color: #2563eb;
+  outline: none;
+}
+.bulk-io-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
 label {
   font-weight: 500;
   font-size: 14px;

@@ -36,6 +36,9 @@ async function init() {
   const addRow = document.getElementById('add-row') as HTMLButtonElement;
   const save = document.getElementById('save') as HTMLButtonElement;
   const status = document.getElementById('status') as HTMLDivElement;
+  const bulkJson = document.getElementById('bulk-json') as HTMLTextAreaElement;
+  const bulkExport = document.getElementById('bulk-export') as HTMLButtonElement;
+  const bulkImport = document.getElementById('bulk-import') as HTMLButtonElement;
 
   secret.value = await getApiSecret();
   const projects = await getProjects();
@@ -52,6 +55,15 @@ async function init() {
 
   addRow.addEventListener('click', () => {
     appendBlankRow(tbody);
+  });
+
+  bulkExport.addEventListener('click', () => {
+    bulkJson.value = exportTableJson(tbody);
+    showStatus(status, 'יוצא לתיבה. עותק עכשיו.', false);
+  });
+
+  bulkImport.addEventListener('click', () => {
+    handleBulkImport(tbody, bulkJson, status);
   });
 
   save.addEventListener('click', () => {
@@ -202,4 +214,73 @@ function showStatus(el: HTMLDivElement, text: string, isError: boolean) {
   el.textContent = text;
   el.className = isError ? 'status error' : 'status';
   el.classList.remove('hidden');
+}
+
+// Serialize the current table rows as JSON. Excludes empty rows and the
+// internal `id`; the importer will mint fresh IDs.
+function exportTableJson(tbody: HTMLTableSectionElement): string {
+  const rows = collectRows(tbody)
+    .map(rowToProject)
+    .filter((p) => p.label || p.origin || p.endpoint)
+    .map(({ label, origin, endpoint }) => ({ label, origin, endpoint }));
+  return JSON.stringify(rows, null, 2);
+}
+
+// Parse the textarea JSON, validate each entry, append valid ones as new
+// rows. Bad entries are reported by index but don't abort the import.
+function handleBulkImport(
+  tbody: HTMLTableSectionElement,
+  textarea: HTMLTextAreaElement,
+  status: HTMLDivElement,
+) {
+  const raw = textarea.value.trim();
+  if (!raw) {
+    showStatus(status, 'תיבת ה-JSON ריקה.', true);
+    return;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    showStatus(
+      status,
+      `JSON לא תקין: ${err instanceof Error ? err.message : String(err)}`,
+      true,
+    );
+    return;
+  }
+  if (!Array.isArray(parsed)) {
+    showStatus(status, 'מצופה מערך JSON של פרוייקטים.', true);
+    return;
+  }
+
+  const errors: string[] = [];
+  let imported = 0;
+  parsed.forEach((entry, i) => {
+    const n = i + 1;
+    if (!entry || typeof entry !== 'object') {
+      errors.push(`רשומה ${n}: לא אובייקט.`);
+      return;
+    }
+    const e = entry as Record<string, unknown>;
+    const label = typeof e.label === 'string' ? e.label.trim() : '';
+    const origin = typeof e.origin === 'string' ? e.origin.trim() : '';
+    const endpoint = typeof e.endpoint === 'string' ? e.endpoint.trim() : '';
+    if (!label || !origin || !endpoint) {
+      errors.push(`רשומה ${n}: חסר label / origin / endpoint.`);
+      return;
+    }
+    appendRow(tbody, {
+      id: crypto.randomUUID(),
+      label,
+      origin,
+      endpoint,
+    });
+    imported += 1;
+  });
+
+  const summary = errors.length
+    ? `יובאו ${imported}; דילוג על ${errors.length}: ${errors.join(' ')}`
+    : `יובאו ${imported} פרוייקטים. לחץ "שמור והפעל הרשאות" כדי לאשר.`;
+  showStatus(status, summary, errors.length > 0);
 }

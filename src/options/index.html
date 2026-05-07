@@ -47,6 +47,21 @@
           </table>
         </div>
         <button id="add-row" type="button" class="ghost-btn">+ הוסף שורה</button>
+
+        <details class="bulk-io">
+          <summary>ייבוא / ייצוא JSON</summary>
+          <p class="hint">
+            פורמט: <code dir="ltr">[{"label": "...", "origin": "...", "endpoint": "..."}]</code>.
+            <strong>ייצוא</strong> ממלא את התיבה למטה מהטבלה הנוכחית. <strong>ייבוא</strong> מוסיף
+            לטבלה את כל הרשומות התקינות שב-JSON (לא מחליף — רק מצרף; שורות כפולות תצטרך למחוק
+            ידנית). ה-API secret <em>לא</em> נכלל בייצוא, מסיבות אבטחה.
+          </p>
+          <textarea id="bulk-json" rows="6" dir="ltr" spellcheck="false" placeholder='[{"label":"my-site","origin":"https://my-site.com/*","endpoint":"https://my-site.com/api/qa-assistant"}]'></textarea>
+          <div class="bulk-io-actions">
+            <button id="bulk-export" type="button" class="ghost-btn">⤓ ייצוא לתיבה</button>
+            <button id="bulk-import" type="button" class="ghost-btn">⤒ ייבוא מהתיבה</button>
+          </div>
+        </details>
       </section>
 
       <div class="footer">
